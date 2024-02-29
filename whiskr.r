@@ -36,4 +36,23 @@ history %>%
 
 ggsave('whiskr.png')
 
-
+history %>%
+    filter(Activity %in% activityilst) %>%
+    mutate(
+        Timestamp = mdy_hm(
+            stringr::str_replace(
+                Timestamp, " ", "/2024 "
+            )
+        )
+    ) %>%
+    mutate(
+        Time = hms::as_hms(Timestamp),
+        Week = factor(lubridate::week(Timestamp))
+    ) %>%
+    ggplot(
+       aes(
+           y = Time,
+           x = Week
+       )
+   ) +
+     geom_violin() + ggdark::dark_mode()
