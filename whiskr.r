@@ -45,7 +45,7 @@ history %>%
     ) +
     geom_smooth()# + ggdark::dark_mode()
 
-ggsave('whiskr.png')
+ggsave("whiskr_weight.png", width = 9.88, height = 4.97, dpi = 120)
 
 # Dot time by day
 history %>%
@@ -86,3 +86,5 @@ history %>%
         ),
         minor_breaks = NULL
     )
+
+ggsave("whiskr_visits.png", width = 9.88, height = 4.97, dpi = 120)
