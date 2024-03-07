@@ -47,42 +47,6 @@ history %>%
 
 ggsave('whiskr.png')
 
-# Violin by week
-history %>%
-    filter(Activity %in% activityilst) %>%
-    mutate(
-        Timestamp = mdy_hm(
-            stringr::str_replace(
-                Timestamp, " ", "/2024 "
-            )
-        )
-    ) %>%
-    mutate(
-        Time = hms::as_hms(Timestamp),
-        Week = lubridate::week(Timestamp)
-    ) %>%
-    ggplot(
-        aes(
-            y = Time,
-            x = factor(Week)
-        )
-    ) +
-    ggtitle("Artemis' Litter Box Visits throughout the Day, Grouped by Week") +
-    scale_x_discrete(name = "Week") +
-    scale_y_time(
-        breaks = c(
-            hms::as_hms("00:00:00"),
-            hms::as_hms("06:00:00"),
-            hms::as_hms("12:00:00"),
-            hms::as_hms("18:00:00"),
-            # hms::as_hms("19:40:00"),
-            hms::as_hms("24:00:00")
-        ),
-        minor_breaks = NULL
-    ) +
-    geom_violin(adjust = .2) +
-    ggdark::dark_mode()
-
 # Dot time by day
 history %>%
     filter(Activity %in% activityilst) %>%
