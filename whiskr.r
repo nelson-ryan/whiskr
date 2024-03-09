@@ -37,10 +37,10 @@ history %>%
     ggplot(
         aes(x = Timestamp, y = Weight)
     ) +
-    ggtitle("Artemis: Weight over time") +
+    ggtitle("Artemis' Weight over time") +
+    ylab("Weight (lbs)") +
     geom_point() +
     scale_y_continuous(
-        breaks = seq(0, 100, .1),
         minor_breaks = seq(0, 100, .5)
     ) +
     geom_smooth()# + ggdark::dark_mode()
@@ -71,7 +71,6 @@ history %>%
             x = Date
         ),
         size = 1,
-        color = "black",
         alpha = .5
     ) +
     scale_x_date(date_minor_breaks = "1 day") +
@@ -84,7 +83,13 @@ history %>%
             hms::as_hms("20:00:00"),
             hms::as_hms("24:00:00")
         ),
-        minor_breaks = NULL
+        minor_breaks = NULL,
+        expand = c(0, 0),
+        limits = c(
+            hms::as_hms("00:00:00"),
+            hms::as_hms("24:00:00")
+        ),
+        labels = function(label) strftime(x = label, format = "%H:%M")
     )
 
 ggsave("whiskr_visits.png", width = 9.88, height = 4.97, dpi = 120)
