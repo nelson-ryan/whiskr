@@ -20,7 +20,7 @@ activityilst = c(
 )
 
 # Weight over time
-history %>%
+weightplot = history %>%
     filter(Activity %in% activityilst) %>%
     mutate(
         Timestamp = mdy_hm(
@@ -45,10 +45,10 @@ history %>%
     ) +
     geom_smooth()# + ggdark::dark_mode()
 
-ggsave("whiskr_weight.png", width = 9.88, height = 4.97, dpi = 120)
+ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 
 # Dot time by day
-history %>%
+visitsplot = history %>%
     filter(Activity %in% activityilst) %>%
     mutate(
         Timestamp = mdy_hm(
@@ -92,4 +92,4 @@ history %>%
         labels = function(label) strftime(x = label, format = "%H:%M")
     )
 
-ggsave("whiskr_visits.png", width = 9.88, height = 4.97, dpi = 120)
+ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
