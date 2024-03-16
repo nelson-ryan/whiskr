@@ -41,7 +41,11 @@ weightplot = history %>%
     ylab("Weight (lbs)") +
     geom_point() +
     scale_y_continuous(
-        minor_breaks = seq(0, 100, .5)
+        breaks = seq(0, 100, .5),
+        minor_breaks = seq(0, 100, .1)
+    ) +
+    scale_x_datetime(
+        expand = c(0, 0)
     ) +
     geom_smooth()# + ggdark::dark_mode()
 
