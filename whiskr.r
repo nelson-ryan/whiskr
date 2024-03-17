@@ -60,6 +60,12 @@ visitsplot = history %>%
         Date = date(Timestamp)
     ) %>%
     filter(Weight > 7) %>%
+    group_by(
+        Date
+    ) %>%
+    mutate(
+        ct = n()
+    ) %>%
     ggplot() +
     ggtitle("Artemis' Litter Box Visits by Day") +
     geom_point(
@@ -70,7 +76,9 @@ visitsplot = history %>%
         size = 1,
         alpha = .5
     ) +
-    scale_x_date(date_minor_breaks = "1 day") +
+    scale_x_date(
+        date_minor_breaks = "1 day"
+    ) +
     scale_y_time(
         breaks = c(
             hms::as_hms("00:00:00"),
@@ -87,6 +95,12 @@ visitsplot = history %>%
             hms::as_hms("24:00:00")
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
+    ) +
+    geom_smooth(
+        aes(
+            x = Date,
+            y = ct * 860
+        )
     )
 
 ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
