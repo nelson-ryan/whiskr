@@ -19,8 +19,7 @@ activityilst = c(
     "Pet Weight Recorded"
 )
 
-# Weight over time
-weightplot = history %>%
+history = history %>%
     filter(Activity %in% activityilst) %>%
     mutate(
         Timestamp = mdy_hm(
@@ -31,7 +30,10 @@ weightplot = history %>%
     ) %>%
     mutate(
         Weight = readr::parse_number(Value)
-    ) %>%
+    )
+
+# Weight over time
+weightplot = history %>%
     filter(Weight > 7) %>%
     select(Weight, Timestamp) %>%
     ggplot(
@@ -53,18 +55,9 @@ ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 
 # Dot time by day
 visitsplot = history %>%
-    filter(Activity %in% activityilst) %>%
-    mutate(
-        Timestamp = mdy_hm(
-            stringr::str_replace(
-                Timestamp, " ", "/2024 "
-            )
-        )
-    ) %>%
     mutate(
         Time = hms::as_hms(Timestamp),
-        Date = date(Timestamp),
-        Weight = readr::parse_number(Value)
+        Date = date(Timestamp)
     ) %>%
     filter(Weight > 7) %>%
     ggplot() +
