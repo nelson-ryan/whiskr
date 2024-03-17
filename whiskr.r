@@ -80,15 +80,23 @@ visitsplot = history %>%
         date_minor_breaks = "1 day"
     ) +
     scale_y_time(
-        breaks = c(
-            hms::as_hms("00:00:00"),
-            hms::as_hms("05:00:00"),
-            hms::as_hms("07:00:00"),
-            hms::as_hms("16:00:00"),
-            hms::as_hms("20:00:00"),
-            hms::as_hms("24:00:00")
+        breaks = hms::as_hms(
+            c(
+                "00:00:00",
+                "05:00:00",
+                "07:00:00",
+                "16:00:00",
+                "20:00:00",
+                "24:00:00"
+            )
         ),
-        minor_breaks = NULL,
+        minor_breaks = hms::as_hms(
+            seq.POSIXt(
+                from = as.POSIXct("01-01-01"),
+                by = "1 hour",
+                length.out = 24
+            )
+        ),
         expand = c(0, 0),
         limits = c(
             hms::as_hms("00:00:00"),
