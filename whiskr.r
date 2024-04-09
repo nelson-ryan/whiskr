@@ -31,11 +31,11 @@ history = history %>%
     ) %>%
     mutate(
         Weight = readr::parse_number(Value)
-    )
+    ) %>%
+    filter(Weight < 15, Weight > 7)
 
 # Weight over time
 weightplot = history %>%
-    filter(Weight > 7) %>%
     select(Weight, Timestamp) %>%
     ggplot(
         aes(x = Timestamp, y = Weight)
@@ -51,6 +51,7 @@ weightplot = history %>%
         expand = c(0, 0)
     ) +
     geom_smooth()# + ggdark::dark_mode()
+weightplot
 
 # Dot time by day
 visitsplot = history %>%
@@ -58,7 +59,6 @@ visitsplot = history %>%
         Time = hms::as_hms(Timestamp),
         Date = date(Timestamp)
     ) %>%
-    filter(Weight > 7) %>%
     group_by(
         Date
     ) %>%
@@ -109,6 +109,7 @@ visitsplot = history %>%
             y = ct * 860
         )
     )
+visitsplot
 
 ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
