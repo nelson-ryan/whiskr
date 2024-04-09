@@ -16,7 +16,8 @@ history =
     readr::read_csv(col_name = TRUE)
 
 activityilst = c(
-    "Pet Weight Recorded"
+    "Pet Weight Recorded",
+    "Weight Recorded"
 )
 
 history = history %>%
@@ -50,8 +51,6 @@ weightplot = history %>%
         expand = c(0, 0)
     ) +
     geom_smooth()# + ggdark::dark_mode()
-
-ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 
 # Dot time by day
 visitsplot = history %>%
@@ -111,4 +110,5 @@ visitsplot = history %>%
         )
     )
 
+ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
