@@ -8,20 +8,22 @@ library(purrr)
 
 drive_auth("ryan@nelsonr.dev")
 
-history =
-    drive_ls() %>%
-    mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
-    filter(modified == max(modified)) %>%
-    drive_read_string() %>%
-    readr::read_csv(col_name = TRUE)
-
-activityilst = c(
+activitylist = c(
     "Pet Weight Recorded",
     "Weight Recorded"
 )
 
+files = drive_ls(type = "csv") %>%
+    mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
+    filter(stringr::str_starts(name, "litter-robot"))
+
+history = files$id %>%
+    map(function(x) readr::read_csv(drive_read_string(x), col_names = TRUE)) %>%
+    bind_rows() %>%
+    filter(Activity %in% activitylist) %>%
+    distinct(Timestamp, Value)
+
 history = history %>%
-    filter(Activity %in% activityilst) %>%
     mutate(
         Timestamp = mdy_hm(
             stringr::str_replace(
