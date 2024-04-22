@@ -18,7 +18,12 @@ files = drive_ls(type = "csv") %>%
     filter(stringr::str_starts(name, "litter-robot"))
 
 history = files$id %>%
-    map(function(x) readr::read_csv(drive_read_string(x), col_names = TRUE)) %>%
+    map(function(id) {
+        readr::read_csv(
+            drive_read_string(id),
+            col_names = TRUE
+        )
+    }) %>%
     bind_rows() %>%
     filter(Activity %in% activitylist) %>%
     distinct(Timestamp, Value)
@@ -56,7 +61,7 @@ weightplot = history %>%
 weightplot
 
 # Dot time by day
-visitsplot = history %>%
+visits = history %>%
     mutate(
         Time = hms::as_hms(Timestamp),
         Date = date(Timestamp)
@@ -65,17 +70,21 @@ visitsplot = history %>%
         Date
     ) %>%
     mutate(
-        ct = n()
-    ) %>%
+        Visits = n()
+    )
+
+
+visitsplot = visits %>%
     ggplot() +
     ggtitle("Artemis' Litter Box Visits by Day") +
+    ylab("Time of Day") +
     geom_point(
         aes(
             y = Time,
             x = Date
         ),
         size = 1,
-        alpha = .5
+        alpha = 1
     ) +
     scale_x_date(
         date_minor_breaks = "1 day",
@@ -106,10 +115,21 @@ visitsplot = history %>%
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
     ) +
+    geom_col(
+        aes(
+            y = Visits * 13,
+            x = Date,
+            fill = Visits),
+        alpha = 0.5
+    ) +
+    scale_fill_gradient(
+        low = "deepskyblue",
+        high = "brown"
+    ) +
     geom_smooth(
         aes(
             x = Date,
-            y = ct * 860
+            y = Visits * 12 * 60
         )
     )
 visitsplot
