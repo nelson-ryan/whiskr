@@ -78,7 +78,8 @@ visitsplot = history %>%
         alpha = .5
     ) +
     scale_x_date(
-        date_minor_breaks = "1 day"
+        date_minor_breaks = "1 day",
+        expand = c(0,0)
     ) +
     scale_y_time(
         breaks = hms::as_hms(
