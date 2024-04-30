@@ -67,17 +67,21 @@ visits = history %>%
         Date = date(Timestamp)
     )
 
-
 visitsplot = visits %>%
-    ggplot() +
-    ggtitle("Artemis' Litter Box Visits by Day") +
-    ylab("Time of Day") +
-    geom_point(
+    ggplot(
         aes(
             y = Time,
             x = Date
-        ),
-        bins = 24
+        )
+    ) +
+    ggtitle("Artemis' Litter Box Visits by Day") +
+    ylab("Visits") +
+    stat_density_2d_filled(
+        contour_var = "count",
+        show.legend = FALSE
+    ) +
+    # scale_fill_gradient(high = "brown", low = "deepskyblue") +
+    geom_point(
     ) +
     scale_x_date(
         date_minor_breaks = "1 day",
@@ -118,6 +122,7 @@ visits_totalbyday = visits %>%
         Visits = n()
     ) %>%
     ggplot() +
+    ggtitle("Artemis' Litter Box Visit Counts by Day") +
     geom_col(
         aes(
             y = Visits,
@@ -133,7 +138,8 @@ visits_totalbyday = visits %>%
         aes(
             x = Date,
             y = Visits
-        )
+        ),
+        method = "gam"
     )
 visits_totalbyday
 
