@@ -74,14 +74,21 @@ visitsplot = visits %>%
             x = Date
         )
     ) +
-    ggtitle("Artemis' Litter Box Visits by Day") +
+    ggtitle("Artemis' Litter Box Visits: Time of Day") +
     ylab("Visits") +
     stat_density_2d_filled(
-        contour_var = "count",
-        show.legend = FALSE
+        aes(fill = ..level..),
+        contour_var = "ndensity",
+        show.legend = FALSE,
+        alpha = .5
     ) +
-    # scale_fill_gradient(high = "brown", low = "deepskyblue") +
+    scale_fill_manual(
+        values = colorRampPalette(c("white", "brown"))(10)
+    ) +
     geom_point(
+        stroke = 0,
+        alpha = .5,
+        size = 1.5
     ) +
     scale_x_date(
         date_minor_breaks = "1 day",
