@@ -77,8 +77,7 @@ visitsplot = visits %>%
             y = Time,
             x = Date
         ),
-        size = 1,
-        alpha = 1
+        bins = 24
     ) +
     scale_x_date(
         date_minor_breaks = "1 day",
