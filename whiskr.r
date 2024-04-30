@@ -65,12 +65,6 @@ visits = history %>%
     mutate(
         Time = hms::as_hms(Timestamp),
         Date = date(Timestamp)
-    ) %>%
-    group_by(
-        Date
-    ) %>%
-    mutate(
-        Visits = n()
     )
 
 
@@ -88,7 +82,7 @@ visitsplot = visits %>%
     ) +
     scale_x_date(
         date_minor_breaks = "1 day",
-        expand = c(0,0)
+        expand = c(0, 0)
     ) +
     scale_y_time(
         breaks = hms::as_hms(
@@ -114,10 +108,20 @@ visitsplot = visits %>%
             hms::as_hms("24:00:00")
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
-    ) +
+    )
+visitsplot
+
+visits_totalbyday = visits %>%
+    group_by(
+        Date
+    ) %>%
+    summarise(
+        Visits = n()
+    ) %>%
+    ggplot() +
     geom_col(
         aes(
-            y = Visits * 13,
+            y = Visits,
             x = Date,
             fill = Visits),
         alpha = 0.5
@@ -129,10 +133,10 @@ visitsplot = visits %>%
     geom_smooth(
         aes(
             x = Date,
-            y = Visits * 12 * 60
+            y = Visits
         )
     )
-visitsplot
+visits_totalbyday
 
 ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
