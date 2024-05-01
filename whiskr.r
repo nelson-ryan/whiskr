@@ -134,8 +134,10 @@ visits_totalbyday = visits %>%
         aes(
             y = Visits,
             x = Date,
-            fill = Visits),
-        alpha = 0.5
+            fill = Visits
+        ),
+        alpha = 0.5,
+        show.legend = FALSE
     ) +
     scale_fill_gradient(
         low = "deepskyblue",
@@ -146,9 +148,17 @@ visits_totalbyday = visits %>%
             x = Date,
             y = Visits
         ),
-        method = "gam"
+        method = "gam",
+        level = .55
+    ) +
+    scale_x_date(
+        date_minor_breaks = "1 day",
+        expand = c(0, 0)
+    ) +
+    scale_y_continuous(
     )
 visits_totalbyday
 
 ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
+ggsave("visitsbyday.png", plot = visits_totalbyday, width = 9.88, height = 4.97, dpi = 120)
