@@ -5,14 +5,23 @@ library(googledrive)
 library(lubridate)
 library(tidyverse)
 library(purrr)
+library(RSQLite)
+
+sqlite = dbConnect(RSQLite::SQLite(), "whiskr.db")
+
+# Flag indicating whether new data is being added or all data will be refreshed
+appenddata = dbExistsTable(sqlite, "history")
 
 drive_auth("ryan@nelsonr.dev")
 
-files = drive_ls(type = "csv") %>%
+drivefile = drive_ls(type = "csv") %>%
     mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
     filter(stringr::str_starts(name, "litter-robot"))
+if (appenddata) {
+    drivefile = drivefile %>% filter(modified == max(modified))
+}
 
-history = files$id %>%
+importdata = drivefile$id %>%
     map(function(id) {
         readr::read_csv(
             drive_read_string(id),
@@ -23,7 +32,17 @@ history = files$id %>%
     filter(str_detect(Activity, "Weight Recorded")) %>%
     distinct(Timestamp, Value)
 
-history = history %>%
+
+if (appenddata) {
+    dbcontent = dbGetQuery(conn = sqlite, "select * from history")
+    insertdata = importdata %>%
+        anti_join(dbcontent, by = c("Timestamp", "Value"))
+    dbAppendTable(conn = sqlite, name = "history", value = insertdata)
+} else {
+    dbWriteTable(conn = sqlite, name = "history", value = importdata)
+}
+
+history = dbGetQuery(conn = sqlite, "select * from history") %>%
     mutate(
         Timestamp = mdy_hm(
             stringr::str_replace(
