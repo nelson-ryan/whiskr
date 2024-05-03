@@ -8,11 +8,6 @@ library(purrr)
 
 drive_auth("ryan@nelsonr.dev")
 
-activitylist = c(
-    "Pet Weight Recorded",
-    "Weight Recorded"
-)
-
 files = drive_ls(type = "csv") %>%
     mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
     filter(stringr::str_starts(name, "litter-robot"))
@@ -25,7 +20,7 @@ history = files$id %>%
         )
     }) %>%
     bind_rows() %>%
-    filter(Activity %in% activitylist) %>%
+    filter(str_detect(Activity, "Weight Recorded")) %>%
     distinct(Timestamp, Value)
 
 history = history %>%
