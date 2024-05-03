@@ -67,7 +67,7 @@ visits = history %>%
         Date = date(Timestamp)
     )
 
-visitsplot = visits %>%
+visits_time = visits %>%
     ggplot(
         aes(
             y = Time,
@@ -119,9 +119,9 @@ visitsplot = visits %>%
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
     )
-visitsplot
+visits_time
 
-visits_totalbyday = visits %>%
+visits_counts = visits %>%
     group_by(
         Date
     ) %>%
@@ -157,8 +157,8 @@ visits_totalbyday = visits %>%
     ) +
     scale_y_continuous(
     )
-visits_totalbyday
+visits_counts
 
 ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
-ggsave("visits.png", plot = visitsplot, width = 9.88, height = 4.97, dpi = 120)
-ggsave("visitsbyday.png", plot = visits_totalbyday, width = 9.88, height = 4.97, dpi = 120)
+ggsave("visits_time.png", plot = visits_time, width = 9.88, height = 4.97, dpi = 120)
+ggsave("visits_counts.png", plot = visits_counts, width = 9.88, height = 4.97, dpi = 120)
