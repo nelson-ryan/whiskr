@@ -35,8 +35,11 @@ importdata = drivefile$id %>%
 
 if (appenddata) {
     dbcontent = dbGetQuery(conn = sqlite, "select * from history")
-    insertdata = importdata %>%
-        anti_join(dbcontent, by = c("Timestamp", "Value"))
+    insertdata = anti_join(
+        x = importdata,
+        y = dbcontent,
+        by = c("Timestamp", "Value")
+    )
     dbAppendTable(conn = sqlite, name = "history", value = insertdata)
 } else {
     dbWriteTable(conn = sqlite, name = "history", value = importdata)
@@ -105,7 +108,6 @@ visits_time = visits %>%
         size = 1.5
     ) +
     scale_x_date(
-        date_minor_breaks = "1 day",
         expand = c(0, 0)
     ) +
     scale_y_time(
@@ -166,7 +168,6 @@ visits_counts = visits %>%
         level = .55
     ) +
     scale_x_date(
-        date_minor_breaks = "1 day",
         expand = c(0, 0)
     ) +
     scale_y_continuous(
