@@ -82,7 +82,15 @@ visits = history %>%
     mutate(
         Time = hms::as_hms(Timestamp),
         Date = date(Timestamp)
+    ) %>%
+    mutate(
+        Period = if_else(
+            Date > "2024-04-05",
+            "after",
+            "before"
+        )
     )
+
 
 visits_time = visits %>%
     ggplot(
@@ -158,14 +166,6 @@ visits_counts = visits %>%
     scale_fill_gradient(
         low = "deepskyblue",
         high = "brown"
-    ) +
-    geom_smooth(
-        aes(
-            x = Date,
-            y = Visits
-        ),
-        method = "gam",
-        level = .55
     ) +
     scale_x_date(
         expand = c(0, 0)
