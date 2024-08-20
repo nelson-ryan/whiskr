@@ -6,6 +6,8 @@ library(lubridate)
 library(tidyverse)
 library(purrr)
 library(RSQLite)
+library(slider)
+
 
 sqlite = dbConnect(RSQLite::SQLite(), "whiskr.db")
 
@@ -53,10 +55,19 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
             )
         )
     ) %>%
+    arrange(Timestamp) %>%
     mutate(
-        Weight = readr::parse_number(Value)
+        Weight = readr::parse_number(Value),
+        lower = slide_index(
+            Weight, Timestamp, ~(quantile(.x)[2] - (3 * IQR(.x))),
+            .before = days(30), .after = days(30)
+        ),
+        upper = slide_index(
+            Weight, Timestamp, ~(quantile(.x)[4] + (3 * IQR(.x))),
+            .before = days(30), .after = days(30)
+        )
     ) %>%
-    filter(Weight < 15, Weight > 7)
+    filter(Weight <= upper, Weight >= lower)
 
 # Weight over time
 weightplot = history %>%
