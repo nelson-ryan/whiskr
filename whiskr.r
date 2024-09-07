@@ -12,13 +12,13 @@ library(slider)
 sqlite = dbConnect(RSQLite::SQLite(), "whiskr.db")
 
 # Flag indicating whether new data is being added or all data will be refreshed
-appenddata = dbExistsTable(sqlite, "history")
+appenddata = dbExistsTable(sqlite, name = "history")
 
-drive_auth("ryan@nelsonr.dev")
+drive_auth(email = "ryan@nelsonr.dev")
 
 drivefile = drive_ls(type = "csv") %>%
     mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
-    filter(stringr::str_starts(name, "litter-robot"))
+    filter(stringr::str_starts(name, pattern = "litter-robot"))
 if (appenddata) {
     drivefile = drivefile %>% filter(modified == max(modified))
 }
