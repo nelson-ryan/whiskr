@@ -58,16 +58,61 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
     arrange(Timestamp) %>%
     mutate(
         Weight = readr::parse_number(Value),
+        # Interquartile range, adjusted for extreme outliers
+        # There are false positives when the range is zero
         lower = slide_index(
-            Weight, Timestamp, ~(quantile(.x)[2] - (3 * IQR(.x))),
+            Weight, Timestamp,
+            ~(quantile(.x)[2] - (3 * IQR(.x))),
             .before = days(30), .after = days(30)
         ),
         upper = slide_index(
-            Weight, Timestamp, ~(quantile(.x)[4] + (3 * IQR(.x))),
+            Weight, Timestamp,
+            ~(quantile(.x)[4] + (3 * IQR(.x))),
             .before = days(30), .after = days(30)
-        )
-    ) %>%
+        ),
+# I need to be able to extract the individual observations's scale value
+#        s = slide_index(
+#            Weight, Timestamp,
+#            ~(scale(.x)),
+#            .before = days(30), .after = days(30)
+#        )
+# # Refer to slider_index documentation:
+     # Occasionally you need to access the index value that you are currently on.
+     # This is generally not possible with a single call to `slide_index()`, but
+     # can be easily accomplished by following up a `slide_index()` call with a
+     # `purrr::map2()`. In this example, we want to use the distance from the
+     # current index value (in days) as a multiplier on `x`. Values further
+     # away from the current date get a higher multiplier.
+    )  %>%
+    # Filter out outliers from IQR
     filter(Weight <= upper, Weight >= lower)
+
+# # Sandbox comparting resultant sets of different filters for IQR
+# history %>% count()
+# history %>% filter(Weight <= upper, Weight >= lower) %>% count()
+# history %>% filter(Weight > upper | Weight < lower) %>% count()
+
+# begin exploration using scale() for stdev-based outlier filtering
+
+# sandbox
+# get values for example odd case where IQR is 0
+reftime = as_datetime("2024-07-03 11:07:00")
+window = history %>%
+    filter(
+        Timestamp < (reftime + days(30)),
+        Timestamp > (reftime - days(30))
+    ) %>%
+    mutate(
+        i = IQR(Weight),
+        s = scale(Weight)
+    )
+window
+
+# distribution plot
+window %>%
+    ggplot(aes(x = s)) +
+    geom_histogram() + ggdark::dark_mode()
+
 
 # Weight over time
 weightplot = history %>%
@@ -85,7 +130,7 @@ weightplot = history %>%
     scale_x_datetime(
         expand = c(0, 0)
     ) +
-    geom_smooth()# + ggdark::dark_mode()
+    geom_smooth() + ggdark::dark_mode()
 weightplot
 
 # Dot time by day
@@ -183,7 +228,7 @@ visits_counts = visits %>%
     ) +
     scale_y_continuous(
     )
-visits_counts
+visits_counts + ggdark::dark_mode()
 
 ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
 ggsave("visits_time.png", plot = visits_time, width = 9.88, height = 4.97, dpi = 120)
