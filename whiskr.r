@@ -59,15 +59,36 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
     mutate(
         Weight = readr::parse_number(Value),
         lower = slide_index(
-            Weight, Timestamp, ~(quantile(.x)[2] - (3 * IQR(.x))),
+            Weight, Timestamp,
+            ~(quantile(.x)[2] - (3 * IQR(.x))),
             .before = days(30), .after = days(30)
         ),
         upper = slide_index(
-            Weight, Timestamp, ~(quantile(.x)[4] + (3 * IQR(.x))),
+            Weight, Timestamp,
+            ~(quantile(.x)[4] + (3 * IQR(.x))),
             .before = days(30), .after = days(30)
         )
     ) %>%
     filter(Weight <= upper, Weight >= lower)
+
+# Compare resultant sets
+history %>% count()
+history %>% filter(Weight <= upper, Weight >= lower) %>% count()
+history %>% filter(Weight > upper | Weight < lower) %>% count()
+
+# get values for example odd case
+reftime = as_datetime("2024-07-03 11:07:00")
+(history %>%
+    filter(
+        Timestamp < (reftime + days(30)),
+        Timestamp > (reftime - days(30))
+    ) %>%
+    mutate(
+        i = IQR(Weight)
+    )
+)$Weight %>% scale()
+#    ggplot(aes(x = Weight)) %>%
+#    geom_histogram()
 
 # Weight over time
 weightplot = history %>%
