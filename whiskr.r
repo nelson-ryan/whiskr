@@ -60,122 +60,45 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
         Weight = readr::parse_number(Value),
     )
 
-# I need to be able to extract the individual observations's scale value
-#        s = slide_index(
-#            Weight, Timestamp,
-#            ~(scale(.x)),
-#            .before = days(30), .after = days(30)
-#        )
-# # Refer to slider_index documentation:
-# Occasionally you need to access the index value that you are currently on.
-# This is generally not possible with a single call to `slide_index()`, but
-# can be easily accomplished by following up a `slide_index()` call with a
-# `purrr::map2()`. In this example, we want to use the distance from the
-# current index value (in days) as a multiplier on `x`. Values further
-# away from the current date get a higher multiplier.
-
-history_IQR = history %>%
-    mutate(
-        # Interquartile range, adjusted for extreme outliers
-        # There are false positives when the range is zero
-        lower = slide_index(
-            .x = Weight,
-            .i = Timestamp,
-            .f = ~(quantile(.x)[2] - (3 * IQR(.x))),
-            .before = days(30),
-            .after = days(30)
-        ),
-        upper = slide_index(
-            .x = Weight,
-            .i = Timestamp,
-            .f = ~(quantile(.x)[4] + (3 * IQR(.x))),
-            .before = days(30),
-            .after = days(30)
-        )
-    ) %>%
-    # Filter out outliers from IQR
-    filter(Weight <= upper, Weight >= lower)
-
-# # Sandbox comparting resultant sets of different filters for IQR
-# history %>% count()
-# history_filtered %>% count()
-
-#####
-# begin exploration using scale() for stdev-based outlier filtering
-
-# sandbox
-# get values for example odd case where IQR is 0
-reftime = as_datetime("2024-07-03 11:07:00")
-window = history %>%
-    filter(
-        Timestamp < (reftime + days(30)),
-        Timestamp > (reftime - days(30))
-    ) %>%
-    mutate(
-        i = IQR(Weight),
-        s = scale(Weight)
-    )
-window
-
-# distribution plot
-window %>%
-    ggplot(aes(x = s)) +
-    geom_histogram() + ggdark::dark_mode()
-
-# manual filtering
-reftime = as_datetime("2024-07-03 11:07:00")
-history = dbGetQuery(conn = sqlite, "select * from history") %>%
-    mutate(
-        Timestamp = mdy_hm(
-            stringr::str_replace(
-                Timestamp, " ", "/2024 "
-            )
-        )
-    ) %>%
-    arrange(Timestamp) %>%
-    mutate(
-        Weight = readr::parse_number(Value),
-        Filter = ifelse(Weight < 15 & Weight > 9, "retain", "nix"),
-    )
-
-weightandtime = history %>%
-    select(Weight, Timestamp)
-
+# Define the window of time in which to apply scale() for each data point
 windows = slide_index(
-    .x = weightandtime,
-    .i = weightandtime$Timestamp,
+    .x = history,
+    .i = history$Timestamp,
     .f = ~.x,
-    .before = days(3),
-    .after = days(3)
+    .before = days(300),
+    .after = days(300)
 )
 
+# Function to apply scale() to each window,
+# then return the individual measurement's scale value
 get_single_scale_value = function(df, timestamp) {
     scale_vals = scale(df$Weight)
     scale_vals[df$Timestamp == timestamp]
 }
 
-weightandtime %>%
+# Apply and filter based on scale value
+outlier_filtered = history %>%
     mutate(
         scale = unlist(
             map2(
                 windows,
-                weightandtime$Timestamp,
+                .$Timestamp,
                 get_single_scale_value
             )
         )
     ) %>%
-    ggplot(mapping = aes(x = Timestamp)) +
-    geom_line(mapping = aes(y = Weight), color = "purple") +
-    geom_errorbar(aes(ymin = Weight - scale, ymax = Weight), color = "blue") +
-    geom_point(aes(y = Weight)) +
-    ggdark::dark_mode()
-
+    mutate(
+        Reten = ifelse(abs(scale) > 4, FALSE, TRUE)
+    ) %>%
+    filter(
+        Reten == TRUE
+    )
 
 # Weight over time
-weightplot = history %>%
-    select(Weight, Timestamp, Filter) %>%
+weightplot = outlier_filtered %>%
+    select(Weight, Timestamp) %>%
     ggplot(
-        aes(x = Timestamp, y = Weight, color = Filter)
+        aes(x = Timestamp, y = Weight)
     ) +
     ggtitle("Artemis' Weight over time") +
     ylab("Weight (lbs)") +
@@ -184,16 +107,15 @@ weightplot = history %>%
         breaks = seq(0, 100, .5),
         minor_breaks = seq(0, 100, .1)
     ) +
-    #Temporary manual limit, to keep even the HUGE outliers while testing
-    ylim(11, 13.5) +
     scale_x_datetime(
         expand = c(0, 0)
     ) +
-    geom_smooth() + ggdark::dark_mode()
-weightplot
+    geom_smooth()
+weightplot # + ggdark::dark_mode()
+
 
 # Dot time by day
-visits = history %>%
+visits = outlier_filtered %>%
     mutate(
         Time = hms::as_hms(Timestamp),
         Date = date(Timestamp)
@@ -205,7 +127,6 @@ visits = history %>%
             "before"
         )
     )
-
 
 visits_time = visits %>%
     ggplot(
@@ -258,7 +179,7 @@ visits_time = visits %>%
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
     )
-visits_time
+visits_time # + ggdark::dark_mode()
 
 visits_counts = visits %>%
     group_by(
@@ -287,8 +208,26 @@ visits_counts = visits %>%
     ) +
     scale_y_continuous(
     )
-visits_counts + ggdark::dark_mode()
+visits_counts # + ggdark::dark_mode()
 
-ggsave("weight.png", plot = weightplot, width = 9.88, height = 4.97, dpi = 120)
-ggsave("visits_time.png", plot = visits_time, width = 9.88, height = 4.97, dpi = 120)
-ggsave("visits_counts.png", plot = visits_counts, width = 9.88, height = 4.97, dpi = 120)
+ggsave(
+    filename = "weight.png",
+    plot = weightplot,
+    width = 9.88,
+    height = 4.97,
+    dpi = 120
+)
+ggsave(
+    filename = "visits_time.png",
+    plot = visits_time,
+    width = 9.88,
+    height = 4.97,
+    dpi = 120
+)
+ggsave(
+    "visits_counts.png",
+    plot = visits_counts,
+    width = 9.88,
+    height = 4.97,
+    dpi = 120
+)
