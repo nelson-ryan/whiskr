@@ -58,18 +58,8 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
     arrange(Timestamp) %>%
     mutate(
         Weight = readr::parse_number(Value),
-        # Interquartile range, adjusted for extreme outliers
-        # There are false positives when the range is zero
-        lower = slide_index(
-            Weight, Timestamp,
-            ~(quantile(.x)[2] - (3 * IQR(.x))),
-            .before = days(30), .after = days(30)
-        ),
-        upper = slide_index(
-            Weight, Timestamp,
-            ~(quantile(.x)[4] + (3 * IQR(.x))),
-            .before = days(30), .after = days(30)
-        ),
+    )
+
 # I need to be able to extract the individual observations's scale value
 #        s = slide_index(
 #            Weight, Timestamp,
@@ -77,21 +67,40 @@ history = dbGetQuery(conn = sqlite, "select * from history") %>%
 #            .before = days(30), .after = days(30)
 #        )
 # # Refer to slider_index documentation:
-     # Occasionally you need to access the index value that you are currently on.
-     # This is generally not possible with a single call to `slide_index()`, but
-     # can be easily accomplished by following up a `slide_index()` call with a
-     # `purrr::map2()`. In this example, we want to use the distance from the
-     # current index value (in days) as a multiplier on `x`. Values further
-     # away from the current date get a higher multiplier.
-    )  %>%
+# Occasionally you need to access the index value that you are currently on.
+# This is generally not possible with a single call to `slide_index()`, but
+# can be easily accomplished by following up a `slide_index()` call with a
+# `purrr::map2()`. In this example, we want to use the distance from the
+# current index value (in days) as a multiplier on `x`. Values further
+# away from the current date get a higher multiplier.
+
+history_IQR = history %>%
+    mutate(
+        # Interquartile range, adjusted for extreme outliers
+        # There are false positives when the range is zero
+        lower = slide_index(
+            .x = Weight,
+            .i = Timestamp,
+            .f = ~(quantile(.x)[2] - (3 * IQR(.x))),
+            .before = days(30),
+            .after = days(30)
+        ),
+        upper = slide_index(
+            .x = Weight,
+            .i = Timestamp,
+            .f = ~(quantile(.x)[4] + (3 * IQR(.x))),
+            .before = days(30),
+            .after = days(30)
+        )
+    ) %>%
     # Filter out outliers from IQR
     filter(Weight <= upper, Weight >= lower)
 
 # # Sandbox comparting resultant sets of different filters for IQR
 # history %>% count()
-# history %>% filter(Weight <= upper, Weight >= lower) %>% count()
-# history %>% filter(Weight > upper | Weight < lower) %>% count()
+# history_filtered %>% count()
 
+#####
 # begin exploration using scale() for stdev-based outlier filtering
 
 # sandbox
@@ -113,12 +122,60 @@ window %>%
     ggplot(aes(x = s)) +
     geom_histogram() + ggdark::dark_mode()
 
+# manual filtering
+reftime = as_datetime("2024-07-03 11:07:00")
+history = dbGetQuery(conn = sqlite, "select * from history") %>%
+    mutate(
+        Timestamp = mdy_hm(
+            stringr::str_replace(
+                Timestamp, " ", "/2024 "
+            )
+        )
+    ) %>%
+    arrange(Timestamp) %>%
+    mutate(
+        Weight = readr::parse_number(Value),
+        Filter = ifelse(Weight < 15 & Weight > 9, "retain", "nix"),
+    )
+
+weightandtime = history %>%
+    select(Weight, Timestamp)
+
+windows = slide_index(
+    .x = weightandtime,
+    .i = weightandtime$Timestamp,
+    .f = ~.x,
+    .before = days(3),
+    .after = days(3)
+)
+
+get_single_scale_value = function(df, timestamp) {
+    scale_vals = scale(df$Weight)
+    scale_vals[df$Timestamp == timestamp]
+}
+
+weightandtime %>%
+    mutate(
+        scale = unlist(
+            map2(
+                windows,
+                weightandtime$Timestamp,
+                get_single_scale_value
+            )
+        )
+    ) %>%
+    ggplot(mapping = aes(x = Timestamp)) +
+    geom_line(mapping = aes(y = Weight), color = "purple") +
+    geom_errorbar(aes(ymin = Weight - scale, ymax = Weight), color = "blue") +
+    geom_point(aes(y = Weight)) +
+    ggdark::dark_mode()
+
 
 # Weight over time
 weightplot = history %>%
-    select(Weight, Timestamp) %>%
+    select(Weight, Timestamp, Filter) %>%
     ggplot(
-        aes(x = Timestamp, y = Weight)
+        aes(x = Timestamp, y = Weight, color = Filter)
     ) +
     ggtitle("Artemis' Weight over time") +
     ylab("Weight (lbs)") +
@@ -127,6 +184,8 @@ weightplot = history %>%
         breaks = seq(0, 100, .5),
         minor_breaks = seq(0, 100, .1)
     ) +
+    #Temporary manual limit, to keep even the HUGE outliers while testing
+    ylim(11, 13.5) +
     scale_x_datetime(
         expand = c(0, 0)
     ) +
