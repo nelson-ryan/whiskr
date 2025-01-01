@@ -8,19 +8,27 @@ library(purrr)
 library(RSQLite)
 library(slider)
 
-
-sqlite = dbConnect(RSQLite::SQLite(), "whiskr.db")
+dbfile = "whiskr.db"
+sqlite = dbConnect(RSQLite::SQLite(), dbfile)
 
 # Flag indicating whether new data is being added or all data will be refreshed
 appenddata = dbExistsTable(sqlite, name = "history")
+if (!appenddata) {
+    stop(paste(dbfile, " not found. Restore file from repo and re-run."))
+}
 
 drive_auth(email = "ryan@nelsonr.dev")
 
 drivefile = drive_ls(type = "csv") %>%
     mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
     filter(stringr::str_starts(name, pattern = "litter-robot"))
+
 if (appenddata) {
-    drivefile = drivefile %>% filter(modified == max(modified))
+    maxrecord = tbl(src = sqlite, "history") %>%
+        filter(Timestamp == max(Timestamp)) %>%
+        pull(Timestamp) %>%
+        as_datetime()
+    drivefile = drivefile %>% filter(modified > maxrecord)
 }
 
 importdata = drivefile$id %>%
@@ -32,33 +40,47 @@ importdata = drivefile$id %>%
     }) %>%
     bind_rows() %>%
     filter(str_detect(Activity, "Weight Recorded")) %>%
-    distinct(Timestamp, Value)
+    distinct(Timestamp, Value) %>%
+    mutate(
+        Timestamp = mdy_hm(
+            stringr::str_replace(
+                Timestamp,
+                " ",
+                stringr::str_c("/", year(today()), " ") # TODO remove -1
+            )
+        )
+    ) %>%
+    filter(
+        Timestamp < today() # filters previous-year Dec results when in Jan
+    ) %>%
+    mutate(
+        Weight = readr::parse_number(Value),
+    ) %>%
+    select(Timestamp, Weight)
 
 
 if (appenddata) {
-    dbcontent = dbGetQuery(conn = sqlite, "select * from history")
+    dbcontent = tbl(src = sqlite, "history") %>%
+        collect() %>%
+        mutate(
+            Timestamp = as_datetime(Timestamp)
+        )
     insertdata = anti_join(
         x = importdata,
         y = dbcontent,
-        by = c("Timestamp", "Value")
+        by = c("Timestamp", "Weight")
     )
     dbAppendTable(conn = sqlite, name = "history", value = insertdata)
 } else {
     dbWriteTable(conn = sqlite, name = "history", value = importdata)
 }
 
-history = dbGetQuery(conn = sqlite, "select * from history") %>%
+
+history = dbReadTable(conn = sqlite, name = "history") %>%
     mutate(
-        Timestamp = mdy_hm(
-            stringr::str_replace(
-                Timestamp, " ", "/2024 "
-            )
-        )
+        Timestamp = as_datetime(Timestamp)
     ) %>%
-    arrange(Timestamp) %>%
-    mutate(
-        Weight = readr::parse_number(Value),
-    )
+    arrange(Timestamp)
 
 # Define the window of time in which to apply scale() for each data point
 windows = slide_index(
