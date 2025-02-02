@@ -132,8 +132,9 @@ weightplot = outlier_filtered %>%
     scale_x_datetime(
         expand = c(0, 0)
     ) +
-    geom_smooth()
-weightplot + ggdark::dark_mode()
+    geom_smooth() +
+    ggdark::dark_mode()
+weightplot
 
 
 # Dot time by day
@@ -200,8 +201,9 @@ visits_time = visits %>%
             hms::as_hms("24:00:00")
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
-    )
-visits_time + ggdark::dark_mode()
+    ) +
+    ggdark::dark_mode()
+visits_time
 
 visits_counts = visits %>%
     group_by(
@@ -229,8 +231,9 @@ visits_counts = visits %>%
         expand = c(0, 0)
     ) +
     scale_y_continuous(
-    )
-visits_counts + ggdark::dark_mode()
+    ) +
+    ggdark::dark_mode()
+visits_counts
 
 ggsave(
     filename = "weight.png",
