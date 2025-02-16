@@ -132,7 +132,7 @@ weightplot = outlier_filtered %>%
     scale_x_datetime(
         expand = c(0, 0)
     ) +
-    geom_smooth() +
+    geom_smooth(color = "deepskyblue") +
     ggdark::dark_mode()
 weightplot
 
@@ -164,15 +164,14 @@ visits_time = visits %>%
         aes(fill = ..level..),
         contour_var = "ndensity",
         show.legend = FALSE,
-        alpha = .5
+        alpha = 1
     ) +
     scale_fill_manual(
-        values = colorRampPalette(c("white", "brown"))(10)
+        values = colorRampPalette(c("black", "brown"))(10)
     ) +
     geom_point(
         stroke = 0,
-        alpha = .5,
-        size = 1.5
+        alpha = .5
     ) +
     scale_x_date(
         expand = c(0, 0)
