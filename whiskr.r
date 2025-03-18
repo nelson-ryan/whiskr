@@ -110,18 +110,19 @@ outlier_filtered = history %>%
         )
     ) %>%
     mutate(
-        Reten = ifelse(abs(scale) > 4, FALSE, TRUE)
-    ) %>%
-    filter(
-        Reten == TRUE
+        Outlier = ifelse(abs(scale) < 3.5, FALSE, TRUE)
+    # ) %>%
+    # filter(
+    #     Outlier == FALSE
     )
 
 # Weight over time
 weightplot = outlier_filtered %>%
-    select(Weight, Timestamp) %>%
+    select(Weight, Timestamp, Outlier) %>%
     ggplot(
-        aes(x = Timestamp, y = Weight)
+        aes(x = Timestamp, y = Weight, color = Outlier)
     ) +
+    scale_color_hue(direction = -1) +
     ggtitle("Artemis' Weight over time") +
     ylab("Weight (lbs)") +
     geom_point() +
