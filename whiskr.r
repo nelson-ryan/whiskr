@@ -99,7 +99,7 @@ get_single_scale_value = function(df, timestamp) {
 }
 
 # Apply and filter based on scale value
-outlier_filtered = history %>%
+outlier_flagged = history %>%
     mutate(
         scale = unlist(
             map2(
@@ -116,8 +116,14 @@ outlier_filtered = history %>%
     #     Outlier == FALSE
     )
 
+# Apply and filter based on scale value
+outlier_filtered = outlier_flagged %>%
+    filter(
+        Outlier == FALSE
+    )
+
 # Weight over time
-weightplot = outlier_filtered %>%
+weightplot_outliers = outlier_flagged %>%
     select(Weight, Timestamp, Outlier) %>%
     ggplot(
         aes(x = Timestamp, y = Weight, color = Outlier)
@@ -134,6 +140,26 @@ weightplot = outlier_filtered %>%
         expand = c(0, 0)
     ) +
     geom_smooth() +
+    ggdark::dark_mode()
+weightplot_outliers
+
+# Weight over time
+weightplot = outlier_filtered %>%
+    select(Weight, Timestamp) %>%
+    ggplot(
+        aes(x = Timestamp, y = Weight)
+    ) +
+    ggtitle("Artemis' Weight over time") +
+    ylab("Weight (lbs)") +
+    geom_point() +
+    scale_y_continuous(
+        breaks = seq(0, 100, .5),
+        minor_breaks = seq(0, 100, .1)
+    ) +
+    scale_x_datetime(
+        expand = c(0, 0)
+    ) +
+    geom_smooth(color = "deepskyblue") +
     ggdark::dark_mode()
 weightplot
 
