@@ -191,15 +191,14 @@ visits_time = visits %>%
         aes(fill = ..level..),
         contour_var = "ndensity",
         show.legend = FALSE,
-        alpha = .5
+        alpha = 1
     ) +
     scale_fill_manual(
-        values = colorRampPalette(c("white", "brown"))(10)
+        values = colorRampPalette(c("black", "brown"))(10)
     ) +
     geom_point(
         stroke = 0,
-        alpha = .5,
-        size = 1.5
+        alpha = .5
     ) +
     scale_x_date(
         expand = c(0, 0)
