@@ -262,21 +262,21 @@ visits_counts = visits %>%
 visits_counts
 
 ggsave(
-    filename = "weight.png",
+    filename = "doc/weight.png",
     plot = weightplot,
     width = 9.88,
     height = 4.97,
     dpi = 120
 )
 ggsave(
-    filename = "visits_time.png",
+    filename = "doc/visits_time.png",
     plot = visits_time,
     width = 9.88,
     height = 4.97,
     dpi = 120
 )
 ggsave(
-    "visits_counts.png",
+    filename = "doc/visits_counts.png",
     plot = visits_counts,
     width = 9.88,
     height = 4.97,
