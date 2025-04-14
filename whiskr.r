@@ -110,7 +110,7 @@ outlier_flagged = history %>%
         )
     ) %>%
     mutate(
-        Outlier = ifelse(abs(scale) < 3.5, FALSE, TRUE)
+        Outlier = ifelse(abs(scale) < 3, FALSE, TRUE)
     # ) %>%
     # filter(
     #     Outlier == FALSE
@@ -132,15 +132,11 @@ weightplot_outliers = outlier_flagged %>%
     ggtitle("Artemis' Weight over time") +
     ylab("Weight (lbs)") +
     geom_point() +
-    scale_y_continuous(
-        breaks = seq(0, 100, .5),
-        minor_breaks = seq(0, 100, .1)
-    ) +
     scale_x_datetime(
         expand = c(0, 0)
     ) +
     geom_smooth() +
-    ggdark::dark_mode()
+    ggdark::dark_mode() + theme(legend.position = "none")
 weightplot_outliers
 
 # Weight over time
@@ -154,7 +150,6 @@ weightplot = outlier_filtered %>%
     geom_point() +
     scale_y_continuous(
         breaks = seq(0, 100, .5),
-        minor_breaks = seq(0, 100, .1)
     ) +
     scale_x_datetime(
         expand = c(0, 0)
@@ -266,19 +261,26 @@ ggsave(
     plot = weightplot,
     width = 9.88,
     height = 4.97,
-    dpi = 120
+    dpi = 240
+)
+ggsave(
+    filename = "doc/weight_outliers.png",
+    plot = weightplot_outliers,
+    width = 9.88,
+    height = 4.97,
+    dpi = 240
 )
 ggsave(
     filename = "doc/visits_time.png",
     plot = visits_time,
     width = 9.88,
     height = 4.97,
-    dpi = 120
+    dpi = 240
 )
 ggsave(
     filename = "doc/visits_counts.png",
     plot = visits_counts,
     width = 9.88,
     height = 4.97,
-    dpi = 120
+    dpi = 240
 )
