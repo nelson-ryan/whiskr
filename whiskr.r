@@ -31,34 +31,39 @@ if (appenddata) {
     drivefile = drivefile %>% filter(modified > maxrecord)
 }
 
-importdata = drivefile$id %>%
-    map(function(id) {
-        readr::read_csv(
-            drive_read_string(id),
-            col_names = TRUE
-        )
-    }) %>%
+importdata =
+    map2(
+        drivefile$id,
+        drivefile$modified,
+        function(id, modified) {
+            readr::read_csv(
+                drive_read_string(id),
+                col_names = TRUE
+            ) %>%
+                mutate(tz = ifelse(modified > "2025-07-01", "UTC", "MST"))
+        }
+    ) %>%
     bind_rows() %>%
     filter(str_detect(Activity, "Weight Recorded")) %>%
-    distinct(Timestamp, Value) %>%
     mutate(
         Timestamp = mdy_hm(
             stringr::str_replace(
                 Timestamp,
                 " ",
-                stringr::str_c("/", year(today()), " ") # TODO remove -1
+                stringr::str_c("/", year(today()), " ")
             )
-        )
+        ) - hours(if_else(tz == "UTC", 7, 0))
     ) %>%
     filter(
         Timestamp < today() # filters previous-year Dec results when in Jan
     ) %>%
-    mutate(
+    transmute(
+        Timestamp = Timestamp,
         Weight = readr::parse_number(Value),
     ) %>%
-    select(Timestamp, Weight)
+    distinct()
 
-
+# Append new data if data already exists, else write all
 if (appenddata) {
     dbcontent = tbl(src = sqlite, "history") %>%
         collect() %>%
@@ -110,7 +115,7 @@ outlier_flagged = history %>%
         )
     ) %>%
     mutate(
-        Outlier = ifelse(abs(scale) < 3, FALSE, TRUE)
+        Outlier = ifelse(abs(scale) < 2.5, FALSE, TRUE)
     # ) %>%
     # filter(
     #     Outlier == FALSE
