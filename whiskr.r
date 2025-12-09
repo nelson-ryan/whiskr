@@ -44,7 +44,10 @@ importdata =
         }
     ) %>%
     bind_rows() %>%
-    filter(str_detect(Activity, "Weight Recorded")) %>%
+    filter(str_detect(
+        Activity,
+        stringr::regex("Weight Recorded", ignore_case = TRUE)
+    )) %>%
     mutate(
         Timestamp = mdy_hm(
             stringr::str_replace(
