@@ -10,6 +10,8 @@ library(slider)
 
 dbfile = "whiskr.db"
 sqlite = dbConnect(RSQLite::SQLite(), dbfile)
+START = "2022-01-01"
+END = now()
 
 # Flag indicating whether new data is being added or all data will be refreshed
 appenddata = dbExistsTable(sqlite, name = "history")
@@ -109,6 +111,7 @@ history = dbReadTable(conn = sqlite, name = "history") %>%
     mutate(
         Timestamp = as_datetime(Timestamp)
     ) %>%
+    filter(Timestamp > START, Timestamp < END) %>%
     arrange(Timestamp)
 
 # Define the window of time in which to apply scale() for each data point
