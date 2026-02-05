@@ -19,10 +19,12 @@ if (!appenddata) {
 
 drive_auth(email = "ryan@nelsonr.dev")
 
+# Get list of csv files
 drivefile = drive_ls(type = "csv") %>%
     mutate(modified = map_chr(drive_resource, "modifiedTime")) %>%
     filter(stringr::str_starts(name, pattern = "litter-robot"))
 
+# Filter drive files for those later than the most recent record
 if (appenddata) {
     maxrecord = tbl(src = sqlite, "history") %>%
         filter(Timestamp == max(Timestamp)) %>%
@@ -31,19 +33,33 @@ if (appenddata) {
     drivefile = drivefile %>% filter(modified > maxrecord)
 }
 
+# Read and combine data from the filterd list of files
 importdata =
-    map2(
-        drivefile$id,
-        drivefile$modified,
-        function(id, modified) {
+    pmap(
+        list(
+             drivefile$id,
+             drivefile$modified,
+             drivefile$name
+        ),
+        function(id, modified, name) {
             readr::read_csv(
                 drive_read_string(id),
                 col_names = TRUE
             ) %>%
-                mutate(tz = ifelse(modified > "2025-07-01", "UTC", "MST"))
+            mutate(
+                tz = ifelse(
+                    between(modified, "2025-07-01", "2025-12-15"),
+                    "UTC", "MST"
+                ),
+                modified = modified,
+                filename = name
+            )
         }
     ) %>%
-    bind_rows() %>%
+    bind_rows()
+
+importdata_processed = importdata %>%
+    # Filter only relevant records
     filter(str_detect(
         Activity,
         stringr::regex("Weight Recorded", ignore_case = TRUE)
@@ -53,12 +69,17 @@ importdata =
             stringr::str_replace(
                 Timestamp,
                 " ",
-                stringr::str_c("/", year(today()), " ")
+                stringr::str_c("/", year(modified), " ")
             )
         ) - hours(if_else(tz == "UTC", 7, 0))
     ) %>%
-    filter(
-        Timestamp < today() # filters previous-year Dec results when in Jan
+    # Adjust previous-year December dates
+    mutate (
+        Timestamp = if_else(
+            Timestamp > ymd_hms(modified) + days(1),
+            update(Timestamp, year = year(modified) - 1),
+            Timestamp
+        )
     ) %>%
     transmute(
         Timestamp = Timestamp,
@@ -74,13 +95,13 @@ if (appenddata) {
             Timestamp = as_datetime(Timestamp)
         )
     insertdata = anti_join(
-        x = importdata,
+        x = importdata_processed,
         y = dbcontent,
         by = c("Timestamp", "Weight")
     )
     dbAppendTable(conn = sqlite, name = "history", value = insertdata)
 } else {
-    dbWriteTable(conn = sqlite, name = "history", value = importdata)
+    dbWriteTable(conn = sqlite, name = "history", value = importdata_processed)
 }
 
 
