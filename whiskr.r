@@ -109,6 +109,7 @@ history = dbReadTable(conn = sqlite, name = "history") %>%
     mutate(
         Timestamp = as_datetime(Timestamp)
     ) %>%
+    filter(Timestamp > "2024-01-01") %>%
     arrange(Timestamp)
 
 # Define the window of time in which to apply scale() for each data point
