@@ -164,8 +164,9 @@ weightplot_outliers = outlier_flagged %>%
     scale_x_datetime(
         expand = c(0, 0)
     ) +
-    geom_smooth() +
-    ggdark::dark_mode() + theme(legend.position = "none")
+    geom_smooth(data = subset(outlier_flagged, Outlier == FALSE)) +
+    ggdark::dark_mode() +
+    theme(legend.position = "none")
 weightplot_outliers
 
 # Weight over time
