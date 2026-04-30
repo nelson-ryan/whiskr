@@ -39,29 +39,29 @@ if (appenddata) {
 importdata =
     pmap(
         list(
-             drivefile$id,
-             drivefile$modified,
-             drivefile$name
+            drivefile$id,
+            drivefile$modified,
+            drivefile$name
         ),
         function(id, modified, name) {
             readr::read_csv(
                 drive_read_string(id),
                 col_names = TRUE
             ) %>%
-            mutate(
-                tz = ifelse(
-                    between(modified, "2025-07-01", "2025-12-15"),
-                    "UTC", "MST"
-                ),
-                modified = modified,
-                filename = name
-            )
+                mutate(
+                    tz = ifelse(
+                        between(modified, "2025-07-01", "2025-12-15"),
+                        "UTC", "MST"
+                    ),
+                    modified = modified,
+                    filename = name
+                )
         }
     ) %>%
     bind_rows()
 
 importdata_processed = importdata %>%
-    # Filter only relevant records
+    # Filter only relevant records based on Activity label
     filter(str_detect(
         Activity,
         stringr::regex("Weight Recorded", ignore_case = TRUE)
@@ -76,7 +76,7 @@ importdata_processed = importdata %>%
         ) - hours(if_else(tz == "UTC", 7, 0))
     ) %>%
     # Adjust previous-year December dates
-    mutate (
+    mutate(
         Timestamp = if_else(
             Timestamp > ymd_hms(modified) + days(1),
             update(Timestamp, year = year(modified) - 1),
