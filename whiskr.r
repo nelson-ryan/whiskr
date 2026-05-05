@@ -10,7 +10,7 @@ library(slider)
 
 dbfile = "whiskr.db"
 sqlite = dbConnect(RSQLite::SQLite(), dbfile)
-START = "2022-01-01"
+START = "2025-06-01"
 END = now()
 
 # Flag indicating whether new data is being added or all data will be refreshed
@@ -20,6 +20,16 @@ if (!appenddata) {
 }
 
 drive_auth(email = "ryan@nelsonr.dev")
+
+# One-time thing for updating database for robot id
+if (!(
+    "Robot" %in% (tbl(src = sqlite, "history") %>% colnames())
+)) {
+    dbExecute(
+        sqlite,
+        "ALTER TABLE history ADD COLUMN Robot TEXT DEFAULT 4;"
+    )
+}
 
 # Get list of csv files
 drivefile = drive_ls(type = "csv") %>%
@@ -86,6 +96,12 @@ importdata_processed = importdata %>%
     transmute(
         Timestamp = Timestamp,
         Weight = readr::parse_number(Value),
+        Robot = as.integer(
+            str_match(
+                string = filename,
+                pattern = "(?<=litter-robot_)\\d"
+            )
+        )
     ) %>%
     distinct()
 
@@ -156,9 +172,9 @@ outlier_filtered = outlier_flagged %>%
 
 # Weight over time
 weightplot_outliers = outlier_flagged %>%
-    select(Weight, Timestamp, Outlier) %>%
+    transmute(Weight, Timestamp, Outlier, Robot) %>%
     ggplot(
-        aes(x = Timestamp, y = Weight, color = Outlier)
+        aes(x = Timestamp, y = Weight, color = interaction(Outlier))
     ) +
     scale_color_hue(direction = -1) +
     ggtitle("Artemis' Weight over time") +
@@ -174,13 +190,14 @@ weightplot_outliers
 
 # Weight over time
 weightplot = outlier_filtered %>%
-    select(Weight, Timestamp) %>%
+    select(Weight, Timestamp, Robot) %>%
     ggplot(
-        aes(x = Timestamp, y = Weight)
+        aes(x = Timestamp, y = Weight, color = Robot)
     ) +
     ggtitle("Artemis' Weight over time") +
     ylab("Weight (lbs)") +
     geom_point() +
+    scale_color_manual(values = c("cadetblue", "orchid")) +
     scale_y_continuous(
         breaks = seq(0, 100, .5),
     ) +
@@ -188,7 +205,8 @@ weightplot = outlier_filtered %>%
         expand = c(0, 0)
     ) +
     geom_smooth(color = "deepskyblue") +
-    ggdark::dark_mode()
+    ggdark::dark_mode() +
+    theme(legend.position = "none")
 weightplot
 
 
@@ -216,18 +234,24 @@ visits_time = visits %>%
     ggtitle("Artemis' Litter Box Visits: Time of Day") +
     ylab("Visits") +
     stat_density_2d_filled(
-        aes(fill = ..level..),
+        mapping = aes(
+            fill = ..level..
+        ),
         contour_var = "ndensity",
         show.legend = FALSE,
         alpha = 1
     ) +
     scale_fill_manual(
-        values = colorRampPalette(c("black", "brown"))(10)
+        values = colorRampPalette(c("black", "brown"))(20)
     ) +
     geom_point(
         stroke = 0,
-        alpha = .5
+        alpha = .5,
+        mapping = aes(
+            color = Robot
+        )
     ) +
+    scale_color_manual(values = c("cadetblue", "orchid")) +
     scale_x_date(
         expand = c(0, 0)
     ) +
@@ -256,7 +280,8 @@ visits_time = visits %>%
         ),
         labels = function(label) strftime(x = label, format = "%H:%M")
     ) +
-    ggdark::dark_mode()
+    ggdark::dark_mode() +
+    theme(legend.position = "none")
 visits_time
 
 visits_counts = visits %>%
@@ -279,7 +304,7 @@ visits_counts = visits %>%
     ) +
     scale_fill_gradient(
         low = "deepskyblue",
-        high = "brown"
+        high = "darkred"
     ) +
     scale_x_date(
         expand = c(0, 0)
